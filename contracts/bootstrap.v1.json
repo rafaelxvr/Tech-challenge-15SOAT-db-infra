@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "owner": "oficina-app",
+  "databaseOwner": "oficina-db-infra",
+  "tls": {
+    "sslmode": "verify-full",
+    "region": "us-east-1",
+    "caBundleUrl": "https://truststore.pki.rds.amazonaws.com/us-east-1/us-east-1-bundle.pem",
+    "sha256Required": true
+  },
+  "roles": {
+    "migration": {
+      "ownsSchema": true,
+      "superuser": false,
+      "createRole": false
+    },
+    "app": {
+      "ownsSchema": false,
+      "privileges": [
+        "CONNECT",
+        "USAGE schema",
+        "SELECT/INSERT/UPDATE/DELETE approved tables",
+        "USAGE/SELECT approved sequences"
+      ]
+    },
+    "authLookup": {
+      "ownsSchema": false,
+      "privileges": [
+        "CONNECT",
+        "USAGE schema",
+        "SELECT auth_cliente_snapshot"
+      ]
+    },
+    "notificationLookup": {
+      "ownsSchema": false,
+      "privileges": [
+        "CONNECT",
+        "USAGE schema",
+        "SELECT notificacao_destinatario_snapshot"
+      ]
+    }
+  },
+  "requiredReceiptFields": [
+    "schemaVersion",
+    "environment",
+    "sourceCommit",
+    "outputs"
+  ],
+  "requiredOutputFields": [
+    "schemaVersion",
+    "appSecretArn",
+    "migrationSecretArn",
+    "authLookupSecretArn",
+    "notificationLookupSecretArn",
+    "authViewVersion",
+    "recipientViewVersion"
+  ],
+  "forbidden": [
+    "master credential in runtime",
+    "secret_string in Terraform",
+    "credential values in tfvars/output/logs",
+    "PUBLIC schema CREATE",
+    "PUBLIC/default table grants",
+    "function role base-table SELECT/UPDATE"
+  ],
+  "bootstrapSequence": [
+    "private job reads RDS-managed master secret in memory",
+    "idempotent restricted role existence checks and parameterized credentials",
+    "migration owns schema and runs APP Flyway migrations",
+    "revoke PUBLIC and bind explicit grants plus default privileges as schema owner",
+    "real PostgreSQL DatabaseRolesTest and deny checks pass",
+    "publish only four distinct credential secret ARNs and schema/view versions"
+  ]
+}
