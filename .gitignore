@@ -3,4 +3,7 @@
 *.tfstate.*
 *.tfplan
 *.auto.tfvars
+*.auto.tfvars.json
+*.tfvars.json
+!tests/fixtures/*.tfvars.json
 crash.log
