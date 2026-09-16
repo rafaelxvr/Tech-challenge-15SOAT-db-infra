@@ -1,0 +1,1 @@
+{"schemaVersion":1,"repository":"DB","status":"NOT_RUN","planReference":"NOT_CAPTURED","outputReference":"NOT_AVAILABLE","runEvidence":"NOT_AVAILABLE","externalPrerequisites":["reviewed database Terraform root","approved cloud window","migration/secret-view evidence","authorized non-root identity"]}
