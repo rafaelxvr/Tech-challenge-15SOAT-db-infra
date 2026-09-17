@@ -3,6 +3,8 @@ param()
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
+& "$PSScriptRoot/workflow-context-contract.ps1"
+& "$PSScriptRoot/source-package-contract.ps1"
 & "$PSScriptRoot/cloud-window-tests.ps1"
 & "$PSScriptRoot/pipeline-contract.ps1"
 & "$PSScriptRoot/launcher-contract.ps1"
