@@ -17,6 +17,8 @@ Before apply, the adapter rechecks orderability of 16.15/db.t4g.micro/encrypted 
 
 GitHub staging accepts develop and production accepts main; enforce PR review/checks and restricted bypass externally. PR verification receives no OIDC deployment identity. Required per-environment variables are `AWS_LAUNCHER_ROLE_ARN`, `ARTIFACT_BUCKET`, `SOURCE_PREFIX`, `CODEBUILD_PROJECT`, `DEPLOYER_IMAGE_DIGEST` and `FOUNDATION_OUTPUT_RECEIPT_JSON`. Protected `TERRAFORM_TFVARS_JSON` contains only verified `account_id` and `source_security_group_ids`; the resolver supplies VPC and DB subnet IDs from the immutable foundation receipt. `CLOUD_WINDOW_EVIDENCE_JSON` must be fresh/open. Numeric-budget authorization and explicit billing acknowledgment are supported; acknowledgment authorizes only study staging, never production.
 
+The staging job also supports an explicitly approved rehearsal from the `develop` ref through GitHub Actions `workflow_dispatch`. Select `develop`, enter `STAGING_ONLY` exactly, and keep the protected `staging` environment approval and fresh cloud-window evidence in place. The context guard rejects manual production runs and every other dispatch value; automatic `develop` pushes remain enabled.
+
 Production also needs `STAGING_PROMOTION_KEY`, `STAGING_PROMOTION_VERSION_ID` and `STAGING_PROMOTION_SHA256`. The verifier downloads and checks the named successful staging receipt and its named manifest. ZIPs use tree content and fixed timestamps, so unchanged trees remain byte-identical across merge commits; changed content must pass staging again. Launcher waits for terminal CodeBuild success before publishing promotion evidence; StartBuild alone is not success.
 
 ## Exact external permission dependencies

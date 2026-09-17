@@ -18,6 +18,8 @@ Roots: `infra/environments/staging` and `infra/environments/production`; reusabl
 
 CI checks PRs and branch pushes without AWS credentials. Protected develop/main pushes can invoke their matching private CodeBuild executor only with reviewed configuration, an open cloud window and immutable artifacts. Production additionally requires a successful staging promotion of the exact source bytes. Workflow source does not configure GitHub protection or grant deployment authorization.
 
+For an authorized staging rehearsal, run the workflow manually on `develop` and enter `STAGING_ONLY`; production remains push-only. The same protected environment, cloud-window, artifact and executor checks apply.
+
 ## Technologies and Prerequisites
 
 Technologies are listed in the configuration table above. Prerequisites: Terraform 1.15.8, PowerShell 7, provider dependencies for offline mocked validation, and reviewed foundation inputs before any cloud plan. DB has no API or Dockerfile; consumers use the [APP API contract](../Tech-challenge-15SOAT/docs/phase-3/api/contracts.md).
