@@ -11,6 +11,8 @@ For V2, the four ARN fields are `migrationSecretArn`, `appSecretArn`, `authLooku
 
 Both paths preserve checks for expected APP source commit/environment, complete exact fields, distinct same-account/environment role references, master-secret exclusion, receipt hash and pinned CA hash. Duplicate JSON keys (including case variants), non-scalar references and unknown fields fail before any output. V2 additionally checks the exact role path, immutable version syntax and V8/V5/V7. No master reference, username, password or unknown field may appear in the receipt. The separately supplied `MasterSecretArn` exists only to validate exclusion/account binding; it is never added to validated output.
 
+JSON shape is checked before PowerShell conversion: root and `outputs` must be objects; root `schemaVersion` must be integer 1 or 2; `environment`, `sourceCommit` and every output field (including output schema/view versions, ARNs and VersionIds) must be non-empty scalar strings. Empty/singleton arrays, object-valued metadata, nulls and malformed roots are rejected, preventing PowerShell collection comparison or singleton enumeration from bypassing the contract.
+
 Validation command (all files/hashes must come from reviewed evidence):
 
 ```powershell

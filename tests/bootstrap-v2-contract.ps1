@@ -24,7 +24,7 @@ function New-Fixture([int]$Version=2,[string]$Environment='staging') {
     $script:check=@{ReceiptFile=$path;ExpectedSha256='';Environment=$Environment;SourceCommit=('a'*40);MasterSecretArn=$master;CaBundleFile=$ca;ExpectedCaSha256=(Sha $ca)}
 }
 function Save-Fixture {
-    $script:receipt | ConvertTo-Json -Depth 10 -Compress | Set-Content -LiteralPath $path -NoNewline
+    ConvertTo-Json -InputObject $script:receipt -Depth 10 -Compress | Set-Content -LiteralPath $path -NoNewline
     $script:check.ExpectedSha256=Sha $path
 }
 function Check-Fixture {
@@ -39,6 +39,26 @@ function Check-Fixture {
 }
 try {
     foreach($environment in @('staging','production')) { foreach($version in @(1,2)) { New-Fixture $version $environment; Check-Fixture } }
+    foreach($version in @(1,2)) {
+        foreach($mutation in @(
+            {$script:receipt=@($script:receipt)}, {$script:receipt=@()}, {$script:receipt=@{}},
+            {$script:receipt=$null}, {$script:receipt='malformed-root'}, {$script:receipt=2},
+            {$script:receipt.outputs=@($script:receipt.outputs)}, {$script:receipt.outputs=@()},
+            {$script:receipt.outputs=$null}, {$script:receipt.outputs='malformed-outputs'},
+            {$script:receipt.schemaVersion=@($script:receipt.schemaVersion)}, {$script:receipt.schemaVersion=@()}, {$script:receipt.schemaVersion=@{}},
+            {$script:receipt.environment=@('staging')}, {$script:receipt.environment=@()}, {$script:receipt.environment=@{}}, {$script:receipt.environment=' '},
+            {$script:receipt.sourceCommit=@('a'*40)}, {$script:receipt.sourceCommit=@()}, {$script:receipt.sourceCommit=@{}}, {$script:receipt.sourceCommit=''},
+            {$script:receipt.outputs.schemaVersion=@('V8')}, {$script:receipt.outputs.schemaVersion=@()}, {$script:receipt.outputs.schemaVersion=@{}}, {$script:receipt.outputs.schemaVersion=''},
+            {$script:receipt.outputs.appSecretArn=@($script:receipt.outputs.appSecretArn)}, {$script:receipt.outputs.appSecretArn=@()}
+        )) {
+            New-Fixture $version; & $mutation; Save-Fixture
+            Reject { & "$repo/scripts/check-bootstrap-receipt.ps1" @script:check }
+        }
+    }
+    foreach($value in @(@('b'*32), @(), @{}, '', $null)) {
+        New-Fixture; $script:receipt.outputs.appSecretVersionId=$value; Save-Fixture
+        Reject { & "$repo/scripts/check-bootstrap-receipt.ps1" @script:check }
+    }
     foreach($mutation in @(
         {$script:receipt.schemaVersion=3}, {$script:receipt.schemaVersion='2'},
         {$script:receipt.environment='production'}, {$script:receipt.sourceCommit='c'*40},

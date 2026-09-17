@@ -25,6 +25,21 @@ function Assert-UniqueProperties([System.Text.Json.JsonElement]$Element) {
         foreach ($item in $Element.EnumerateArray()) { Assert-UniqueProperties $item }
     }
 }
+function Assert-ReceiptShape([System.Text.Json.JsonElement]$Root) {
+    # Check JSON kinds before PowerShell can enumerate arrays or coerce comparisons.
+    if ($Root.ValueKind -ne [System.Text.Json.JsonValueKind]::Object) { throw 'Receipt root must be an object.' }
+    $version = $Root.GetProperty('schemaVersion')
+    if ($version.ValueKind -ne [System.Text.Json.JsonValueKind]::Number -or $version.GetInt32() -notin @(1, 2)) { throw 'Receipt version must be integer 1 or 2.' }
+    foreach ($name in @('environment', 'sourceCommit')) {
+        $field = $Root.GetProperty($name)
+        if ($field.ValueKind -ne [System.Text.Json.JsonValueKind]::String -or [string]::IsNullOrWhiteSpace($field.GetString())) { throw 'Receipt metadata must be non-empty scalar strings.' }
+    }
+    $outputs = $Root.GetProperty('outputs')
+    if ($outputs.ValueKind -ne [System.Text.Json.JsonValueKind]::Object) { throw 'Receipt outputs must be an object.' }
+    foreach ($property in $outputs.EnumerateObject()) {
+        if ($property.Value.ValueKind -ne [System.Text.Json.JsonValueKind]::String -or [string]::IsNullOrWhiteSpace($property.Value.GetString())) { throw 'Receipt output fields must be non-empty scalar strings.' }
+    }
+}
 # Validate and optionally export the same byte snapshot: no hash/read/export race or schema downgrade.
 $receiptBytes = [IO.File]::ReadAllBytes((Resolve-Path -LiteralPath $ReceiptFile))
 if ((Hash-Bytes $receiptBytes) -cne $ExpectedSha256 -or
@@ -33,9 +48,12 @@ $raw = [Text.Encoding]::UTF8.GetString($receiptBytes).TrimStart([char]0xfeff)
 try {
     $options = [System.Text.Json.JsonDocumentOptions]::new(); $options.MaxDepth = 16
     $parsed = [System.Text.Json.JsonDocument]::Parse($raw, $options)
-    try { Assert-UniqueProperties $parsed.RootElement } finally { $parsed.Dispose() }
+    try {
+        Assert-UniqueProperties $parsed.RootElement
+        Assert-ReceiptShape $parsed.RootElement
+    } finally { $parsed.Dispose() }
     $r = $raw | ConvertFrom-Json
-} catch { throw 'Bootstrap receipt must be valid JSON with unique property names.' }
+} catch { throw 'Bootstrap receipt must be a JSON object with object outputs, scalar fields and unique property names.' }
 if (($r.schemaVersion -isnot [int] -and $r.schemaVersion -isnot [long]) -or $r.schemaVersion -notin @(1, 2) -or
     $r.environment -cne $Environment -or $r.sourceCommit -cne $SourceCommit) { throw 'Bootstrap receipt does not match the expected APP release/environment.' }
 $c = Get-Content -LiteralPath (Join-Path $PSScriptRoot "../contracts/bootstrap.v$($r.schemaVersion).json") -Raw | ConvertFrom-Json
