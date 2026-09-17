@@ -17,13 +17,13 @@ The source SG object names app/auth/notification/bootstrap explicitly. IDs come 
 
 ## APP role bootstrap
 
-`contracts/bootstrap.v1.json` describes the handoff, and `scripts/check-bootstrap-receipt.ps1` checks the hash-bound APP receipt and pinned CA hash. DB does not substitute JSON validation for SQL permission tests.
+The [V1/V2 handoff](bootstrap-receipts.md) has separate exact-field contracts. `scripts/check-bootstrap-receipt.ps1` checks the hash-bound APP receipt and pinned CA hash; V2 preserves all four ARN/immutable-VersionId pairs and V1 remains a distinct legacy format. DB does not substitute JSON validation for SQL permission tests.
 
 The private APP bootstrap identity alone gets temporary `secretsmanager:GetSecretValue` for the exact managed-master ARN. Runtime identities get only their own secret ARN. RDS manages/rotates the master password; do not freeze it in tfvars, Terraform `secret_string`, output artifacts, command lines or logs.
 
-APP performs idempotent role existence checks, generates/injects credentials through parameterized JDBC statements, and creates four separate non-superuser logins without CREATEDB/CREATEROLE. Migration owns the app schema and runs Flyway. App gets only required DML and sequence privileges. Auth gets schema USAGE and SELECT on `auth_cliente_snapshot`; notification gets SELECT on `notificacao_destinatario_snapshot`. Revoke PUBLIC CREATE/schema/default table privileges and bind default grants as the object owner.
+APP performs idempotent role existence checks, reads externally provisioned credentials through exact reviewed secret versions, injects them through parameterized JDBC statements, and creates four separate non-superuser logins without CREATEDB/CREATEROLE. Migration owns the app schema and runs Flyway. App gets only required DML and sequence privileges. Auth gets schema USAGE and SELECT on `auth_cliente_snapshot`; notification gets SELECT on `notificacao_destinatario_snapshot`. Revoke PUBLIC CREATE/schema/default table privileges; new objects receive no automatic runtime grants.
 
-APP's real PostgreSQL `DatabaseRolesTest` must prove function roles cannot SELECT/UPDATE base tables, runtime app cannot perform DDL, and migration can perform its owned-schema changes. Only after those tests and migrations succeed does APP publish the schema/view versions and four distinct environment/account-scoped secret ARNs. DB's checker rejects the master ARN, duplicate secrets, another environment/account, unexpected fields and changed CA/receipt bytes. Secret creation, SQL scripts and integration proof remain APP deliverables.
+APP's real PostgreSQL `DatabaseRolesTest` proves lookup-role base-table denial, runtime app DDL denial, and migration's owned-schema changes locally. Its standalone producer emits V2 schema/view versions and four distinct environment/account-scoped secret ARN/version pairs after runtime checks succeed. DB's checker rejects the master ARN, duplicate role references, another environment/account, unexpected fields and changed CA/receipt bytes. Actual staged bootstrap, external secret provisioning and runtime integration remain acceptance dependencies.
 
 TLS clients use the actual RDS hostname, `sslmode=verify-full` and the SHA-256-pinned regional CA bundle from `https://truststore.pki.rds.amazonaws.com/us-east-1/us-east-1-bundle.pem`. The reviewed hash is recorded during APP packaging; no invented release digest is supplied. [AWS PostgreSQL TLS guidance](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/PostgreSQL.Concepts.General.SSL.html).
 
@@ -54,4 +54,4 @@ sequenceDiagram
   A-->>A: Publish schema/view and runtime-secret references
 ```
 
-The APP steps describe required orchestration, not implemented/live bootstrap proof. Run `pwsh -File tests/verify.ps1` here. Follow [deployment prerequisites](deployment.md) and [requirement/evidence matrix](evidence/requirements.md); actual role grants, TLS and connection headroom remain staged acceptance work.
+The APP steps describe required orchestration; local adapter tests and receipt validation do not establish live bootstrap proof. Run `pwsh -File tests/verify.ps1` here. Follow [deployment prerequisites](deployment.md) and [requirement/evidence matrix](evidence/requirements.md); actual role grants, TLS and connection headroom remain staged acceptance work.

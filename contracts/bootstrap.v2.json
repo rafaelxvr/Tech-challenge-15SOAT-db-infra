@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 2,
+  "owner": "oficina-app",
+  "databaseOwner": "oficina-db-infra",
+  "requiredReceiptFields": ["schemaVersion", "environment", "sourceCommit", "outputs"],
+  "requiredOutputFields": [
+    "schemaVersion", "authViewVersion", "recipientViewVersion",
+    "migrationSecretArn", "migrationSecretVersionId",
+    "appSecretArn", "appSecretVersionId",
+    "authLookupSecretArn", "authLookupSecretVersionId",
+    "notificationLookupSecretArn", "notificationLookupSecretVersionId"
+  ],
+  "schemaVersions": {"schemaVersion": "V8", "authViewVersion": "V5", "recipientViewVersion": "V7"},
+  "secretRoles": {"migrationSecret": "migration", "appSecret": "app", "authLookupSecret": "auth", "notificationLookupSecret": "notification"},
+  "forbidden": ["master reference in receipt", "secret values", "version-stage aliases", "duplicate role ARNs", "cross-account/environment references", "unknown fields"],
+  "compatibility": "Explicit V2 branch; never infer VersionIds for V1, discard V2 versions, or combine with the separate DB Terraform connection receipt."
+}

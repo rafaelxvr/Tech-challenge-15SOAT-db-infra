@@ -2,6 +2,8 @@
 
 Authoring I3 never applies AWS resources. External deployment requires reviewed account/window/permissions and protected GitHub settings. No existing evidence file is proof of a current cloud window.
 
+After APP bootstrap, follow the [explicit V1/V2 receipt validation and optional local export](bootstrap-receipts.md). V2 keeps exact credential ARN/VersionId pairs; the separate DB Terraform connection-output publisher remains unchanged. Receipt validation alone does not authorize SQL execution or publication.
+
 | Environment | CodeBuild project | Source prefix | S3 state key | Trusted tfvars path |
 |---|---|---|---|---|
 | staging | oficina-phase3-oficina-db-infra-staging-deploy | releases/database/staging | database/staging.tfstate | /tmp/oficina/database_staging.tfvars.json |
