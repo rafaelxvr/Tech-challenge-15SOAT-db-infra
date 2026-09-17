@@ -2,6 +2,7 @@
 param()
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+& "$PSScriptRoot/bootstrap-v2-contract.ps1"
 $repo = Split-Path -Parent $PSScriptRoot
 $temp = Join-Path ([IO.Path]::GetTempPath()) ('oficina-db-outputs-test-' + [guid]::NewGuid())
 New-Item -ItemType Directory -Path $temp | Out-Null

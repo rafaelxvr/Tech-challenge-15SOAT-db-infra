@@ -2,6 +2,8 @@
 
 Authoring I3 never applies AWS resources. External deployment requires reviewed account/window/permissions and protected GitHub settings. No existing evidence file is proof of a current cloud window.
 
+After APP bootstrap, follow the [explicit V1/V2 receipt validation and optional local export](bootstrap-receipts.md). V2 keeps exact credential ARN/VersionId pairs; the separate DB Terraform connection-output publisher remains unchanged. Receipt validation alone does not authorize SQL execution or publication.
+
 | Environment | CodeBuild project | Source prefix | S3 state key | Trusted tfvars path |
 |---|---|---|---|---|
 | staging | oficina-phase3-oficina-db-infra-staging-deploy | releases/database/staging | database/staging.tfstate | /tmp/oficina/database_staging.tfvars.json |
@@ -38,3 +40,15 @@ Creation order: foundation/executors → DB RDS → APP schema/roles/views → f
 Run `pwsh -NoProfile -File tests/verify.ps1`. It tests PowerShell contracts, native Terraform output argument handling, offline launcher terminal outcomes, and mock-provider plans for module plus both roots. Init uses backend=false/read-only provider locks. Refresh cross-platform checksums deliberately using `terraform providers lock -platform=windows_amd64 -platform=linux_amd64` in each root/module; review the lockfile diff.
 
 R4 still must demonstrate live VPC isolation, engine availability, private TLS/CA validation, APP SQL permission tests, real connection counts, actual branch/environment protections, approved window, deployment/rollback and output handoff. No such outcome is implied by mocked tests.
+
+## I7 source hardening
+
+Before any OIDC request, each deployment job independently checks its exact push/branch/environment context with `check-workflow-context.ps1`. PRs, tags, manual dispatch and legacy master cannot pass that guard. Non-cancelling environment concurrency, named S3 object versions, checksum bootstrap, terminal CodeBuild polling and staging promotion receipt verification remain required.
+
+`package-source.ps1` resolves the reviewed commit to its tree and uses a fixed archive timestamp. Tests prove that an unchanged merge preserves artifact bytes and a changed tree produces a different digest. Production still requires the successful immutable staging receipt; deterministic packaging does not waive that proof. The package helper never archives the mutable working directory.
+
+Record actual repository visibility, immutable OIDC subject, branch ruleset/protection IDs, required checks/reviews and restricted bypass, plus develop-only staging and main-only production environment policies during external setup. Source changes neither configure those protections nor authorize production. The APP/FUN cloud adapters remain separately fail-closed pending their documented migration/ownership and execution prerequisites; I7 across all four owners is therefore partial, not evidence of eight successful cloud deployments.
+
+Run `tests/source-package-contract.ps1`, `tests/workflow-context-contract.ps1` and the existing pipeline contract suite. Output tests reject sensitive allowlisted fields in addition to filtering unknown credentials/state fields. No AWS API call or cloud deployment is needed for these local proofs.
+
+Lock release checks the owner and observed ETag from the same HEAD, then sends `DeleteObject --if-match` with that exact ETag. A replacement owner changes the lock payload; S3 rejects the stale conditional delete. Missing/wildcard ETags and every delete failure stop release without retrying unconditionally. No specific object version is permanently deleted. The executor AWS CLI must support [S3 DeleteObject If-Match](https://docs.aws.amazon.com/cli/latest/reference/s3api/delete-object.html); an older CLI fails closed and must be updated in its separate reviewed image release. Offline lock mutations use a shared named mutex around owner comparison/deletion. `tests/deployment-lock-race-contract.ps1` deterministically replaces owner A with B between HEAD and DELETE and proves B survives; the old implementation fails this test. AWS calls in this proof are mocked.

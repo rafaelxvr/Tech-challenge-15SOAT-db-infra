@@ -2,6 +2,7 @@
 param()
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+& (Join-Path $PSScriptRoot 'deployment-lock-race-contract.ps1')
 $repo = Split-Path -Parent $PSScriptRoot
 $temp = Join-Path ([IO.Path]::GetTempPath()) ('oficina-db-contract-' + [guid]::NewGuid())
 New-Item -ItemType Directory -Path $temp | Out-Null
@@ -82,7 +83,9 @@ try {
     Reject { & $lock -Action Release -StateBucket 'oficina-state-test' -OwnerToken $other -Offline -OfflineDirectory $lockDir } 'foreign release'
     & $lock -Action Release -StateBucket 'oficina-state-test' -OwnerToken $owner -Offline -OfflineDirectory $lockDir | Out-Null
     $workflow = Get-Content -LiteralPath "$repo/.github/workflows/ci-cd.yml" -Raw
-    foreach ($required in @("refs/heads/develop", "refs/heads/main", 'environment: staging', 'environment: production', 'cancel-in-progress: false', 'id-token: write', 'verify-staging-promotion.ps1', 'resolve-foundation-outputs.ps1', 'terraform_version: 1.15.8', '--mtime=2000-01-01T00:00:00Z')) { Assert ($workflow.Contains($required)) "workflow needs $required" }
+    foreach ($required in @("refs/heads/develop", "refs/heads/main", 'environment: staging', 'environment: production', 'cancel-in-progress: false', 'id-token: write', 'verify-staging-promotion.ps1', 'resolve-foundation-outputs.ps1', 'terraform_version: 1.15.8', './scripts/package-source.ps1', './scripts/check-workflow-context.ps1')) { Assert ($workflow.Contains($required)) "workflow needs $required" }
+    Assert ($workflow.Contains('aws-actions/configure-aws-credentials@cabfdba3510de1431bac9dba27511d97497fc100')) 'workflow must pin the AWS credentials action to the reviewed immutable commit.'
+    Assert (-not $workflow.Contains('aws-actions/configure-aws-credentials@v')) 'workflow must not use a mutable AWS credentials action tag.'
     $verifyJob = ($workflow -split '  deploy-staging:')[0]
     Assert (-not $verifyJob.Contains('id-token: write') -and -not $verifyJob.Contains('configure-aws-credentials')) 'PR verification has no deployment identity'
     foreach ($script in @('deploy.ps1','start-deploy.ps1')) {

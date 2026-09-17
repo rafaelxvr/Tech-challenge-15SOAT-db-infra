@@ -47,6 +47,9 @@ jobs:
       TERRAFORM_TFVARS_JSON: ${{ secrets.TERRAFORM_TFVARS_JSON }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Validate branch and event before requesting identity
+        shell: pwsh
+        run: ./scripts/check-workflow-context.ps1 -Environment $env:DEPLOY_ENVIRONMENT
       - name: Require reviewed environment configuration
         shell: bash
         run: |
@@ -56,7 +59,7 @@ jobs:
             test -n "${!variable:-}" || { echo "Missing reviewed environment configuration: ${variable}"; exit 1; }
           done
       - name: Assume staging launcher role with OIDC
-        uses: aws-actions/configure-aws-credentials@v5
+        uses: aws-actions/configure-aws-credentials@cabfdba3510de1431bac9dba27511d97497fc100 # v5
         with:
           role-to-assume: ${{ vars.AWS_LAUNCHER_ROLE_ARN }}
           aws-region: us-east-1
@@ -64,8 +67,7 @@ jobs:
       - name: Create immutable release manifest
         shell: pwsh
         run: |
-          git archive --format=zip --mtime=2000-01-01T00:00:00Z --output "$env:RUNNER_TEMP/bundle.zip" "$env:GITHUB_SHA^{tree}"
-          $sourceSha = (Get-FileHash -LiteralPath "$env:RUNNER_TEMP/bundle.zip" -Algorithm SHA256).Hash.ToLowerInvariant()
+          $sourceSha = ./scripts/package-source.ps1 -SourceCommit $env:GITHUB_SHA -OutputFile "$env:RUNNER_TEMP/bundle.zip"
           $manifest = [ordered]@{ schemaVersion = 1; environment = $env:DEPLOY_ENVIRONMENT; sourceCommit = $env:GITHUB_SHA; artifactSha256 = $sourceSha; deployerImageDigest = "sha256:$env:DEPLOYER_IMAGE_DIGEST"; contractVersion = 'phase3-v2'; migrationVersion = 'database-infra-v1'; promotedFromStaging = $false }
           $manifest | ConvertTo-Json | Set-Content -LiteralPath "$env:RUNNER_TEMP/release-manifest.json" -NoNewline
           "SOURCE_SHA256=$sourceSha" >> $env:GITHUB_ENV
@@ -109,6 +111,9 @@ jobs:
       TERRAFORM_TFVARS_JSON: ${{ secrets.TERRAFORM_TFVARS_JSON }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Validate branch and event before requesting identity
+        shell: pwsh
+        run: ./scripts/check-workflow-context.ps1 -Environment $env:DEPLOY_ENVIRONMENT
       - name: Require reviewed environment configuration
         shell: bash
         run: |
@@ -118,7 +123,7 @@ jobs:
             test -n "${!variable:-}" || { echo "Missing reviewed environment configuration: ${variable}"; exit 1; }
           done
       - name: Assume production launcher role with OIDC
-        uses: aws-actions/configure-aws-credentials@v5
+        uses: aws-actions/configure-aws-credentials@cabfdba3510de1431bac9dba27511d97497fc100 # v5
         with:
           role-to-assume: ${{ vars.AWS_LAUNCHER_ROLE_ARN }}
           aws-region: us-east-1
@@ -126,8 +131,7 @@ jobs:
       - name: Calculate production artifact digest
         shell: pwsh
         run: |
-          git archive --format=zip --mtime=2000-01-01T00:00:00Z --output "$env:RUNNER_TEMP/bundle.zip" "$env:GITHUB_SHA^{tree}"
-          $sourceSha = (Get-FileHash -LiteralPath "$env:RUNNER_TEMP/bundle.zip" -Algorithm SHA256).Hash.ToLowerInvariant()
+          $sourceSha = ./scripts/package-source.ps1 -SourceCommit $env:GITHUB_SHA -OutputFile "$env:RUNNER_TEMP/bundle.zip"
           "SOURCE_SHA256=$sourceSha" >> $env:GITHUB_ENV
       - name: Verify named successful staging release
         shell: pwsh

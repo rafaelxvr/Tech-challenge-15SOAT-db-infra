@@ -17,3 +17,17 @@ Roots: `infra/environments/staging` and `infra/environments/production`; reusabl
 [Architecture and role handoff](docs/architecture.md) explains ownership and connection budgeting. [Release runbook](docs/deployment.md) defines exact platform interfaces, protected environment settings and unresolved permissions. [I3 evidence](docs/evidence/i3-source-verification.md) records local checks and limitations.
 
 CI checks PRs and branch pushes without AWS credentials. Protected develop/main pushes can invoke their matching private CodeBuild executor only with reviewed configuration, an open cloud window and immutable artifacts. Production additionally requires a successful staging promotion of the exact source bytes. Workflow source does not configure GitHub protection or grant deployment authorization.
+
+## Technologies and Prerequisites
+
+Technologies are listed in the configuration table above. Prerequisites: Terraform 1.15.8, PowerShell 7, provider dependencies for offline mocked validation, and reviewed foundation inputs before any cloud plan. DB has no API or Dockerfile; consumers use the [APP API contract](../Tech-challenge-15SOAT/docs/phase-3/api/contracts.md).
+
+```mermaid
+flowchart LR
+  Foundation[Verified foundation outputs] --> DB[DB Terraform roots]
+  DB --> RDS[(Private environment PostgreSQL)]
+  DB --> Receipt[Allowlisted output receipt]
+  Receipt --> APP[APP schema and role initialization]
+```
+
+[Requirement/evidence matrix](docs/evidence/requirements.md) separates source checks from acceptance gaps. From the APP sibling checkout, run `python scripts/check-doc-links.py docs README.md` to check local links across all four owners. Historical R4 status files remain unchanged by this documentation audit.
