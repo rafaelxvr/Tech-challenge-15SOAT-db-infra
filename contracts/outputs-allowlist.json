@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "repository": "oficina-db-infra",
+  "outputs": {
+    "dbEndpoint": "db_endpoint",
+    "dbPort": "db_port",
+    "dbName": "db_name",
+    "masterSecretArn": "master_secret_arn",
+    "databaseSecurityGroupId": "database_security_group_id"
+  }
+}
