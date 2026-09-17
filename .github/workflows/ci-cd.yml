@@ -95,7 +95,8 @@ jobs:
 
   deploy-production:
     name: deploy-production
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Production stays skipped until the protected environment explicitly enables it.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.PRODUCTION_DEPLOYMENT_ENABLED == 'true'
     needs: verify
     runs-on: ubuntu-24.04
     environment: production

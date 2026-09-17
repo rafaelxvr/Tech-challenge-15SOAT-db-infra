@@ -18,7 +18,7 @@ Roots: `infra/environments/staging` and `infra/environments/production`; reusabl
 
 CI checks PRs and branch pushes without AWS credentials. Protected develop/main pushes can invoke their matching private CodeBuild executor only with reviewed configuration, an open cloud window and immutable artifacts. Production additionally requires a successful staging promotion of the exact source bytes. Workflow source does not configure GitHub protection or grant deployment authorization.
 
-For an authorized staging rehearsal, run the workflow manually on `develop` and enter `STAGING_ONLY`; production remains push-only. The same protected environment, cloud-window, artifact and executor checks apply.
+For an authorized staging rehearsal, run the workflow manually on `develop` and enter `STAGING_ONLY`; production remains disabled until the protected `PRODUCTION_DEPLOYMENT_ENABLED` variable is explicitly set to `true`. Once enabled, production still requires a push to `main` plus the protected environment, cloud-window, artifact and staging-promotion checks.
 
 ## Technologies and Prerequisites
 

@@ -45,6 +45,7 @@ foreach ($job in ($workflow -split '(?m)(?=^  [a-z][a-z0-9-]+:\s*$)')) {
             if (-not $job.Contains($required)) { throw "Deployment job lacks $required." }
         }
         if ($job -match 'environment: production' -and $job -notmatch "github.ref == 'refs/heads/main'") { throw 'Production job must require main.' }
+        if ($job -match 'environment: production' -and $job -notmatch "vars.PRODUCTION_DEPLOYMENT_ENABLED == 'true'") { throw 'Production job must require the explicit activation flag.' }
         if ($job -match 'environment: staging') {
             if ($job -notmatch "github.ref == 'refs/heads/develop'") { throw 'Staging job must require develop.' }
             if ($job -notmatch "inputs.confirm_staging == 'STAGING_ONLY'") { throw 'Manual staging runs need the explicit STAGING_ONLY approval.' }
