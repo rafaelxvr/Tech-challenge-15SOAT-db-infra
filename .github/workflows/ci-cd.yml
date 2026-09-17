@@ -5,6 +5,12 @@ on:
     branches: [develop, main]
   push:
     branches: [develop, main]
+  workflow_dispatch:
+    inputs:
+      confirm_staging:
+        description: 'Type STAGING_ONLY to run the develop staging rehearsal.'
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -26,7 +32,7 @@ jobs:
         run: ./tests/verify.ps1
   deploy-staging:
     name: deploy-staging
-    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/develop') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/develop' && inputs.confirm_staging == 'STAGING_ONLY')
     needs: verify
     runs-on: ubuntu-24.04
     environment: staging
@@ -49,7 +55,9 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Validate branch and event before requesting identity
         shell: pwsh
-        run: ./scripts/check-workflow-context.ps1 -Environment $env:DEPLOY_ENVIRONMENT
+        env:
+          INPUT_CONFIRM_STAGING: ${{ inputs.confirm_staging }}
+        run: ./scripts/check-workflow-context.ps1 -Environment $env:DEPLOY_ENVIRONMENT -DispatchApproval $env:INPUT_CONFIRM_STAGING
       - name: Require reviewed environment configuration
         shell: bash
         run: |
@@ -87,7 +95,8 @@ jobs:
 
   deploy-production:
     name: deploy-production
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Production stays skipped until the protected environment explicitly enables it.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.PRODUCTION_DEPLOYMENT_ENABLED == 'true'
     needs: verify
     runs-on: ubuntu-24.04
     environment: production
